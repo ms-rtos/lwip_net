@@ -214,7 +214,7 @@ a lot of data that needs to be copied, this should be set high. */
 
 #define LWIP_DNS                        1
 
-#define LWIP_IPV6                       1
+#define LWIP_IPV6                       0
 
 /*
    ------------------------------------

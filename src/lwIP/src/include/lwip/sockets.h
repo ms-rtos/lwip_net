@@ -180,9 +180,48 @@ will need to increase long long */
 
 /* Set socket options argument */
 #define IFNAMSIZ NETIF_NAMESIZE
+#ifndef __MS_RTOS__
 struct ifreq {
   char ifr_name[IFNAMSIZ]; /* Interface name */
 };
+#else
+struct ifreq {
+#define IFHWADDRLEN         6
+    union {
+        char                ifrn_name[IFNAMSIZ];                /* if name, e.g. "en1"                  */
+    } ifr_ifrn;
+    union {
+        struct sockaddr     ifru_addr;
+        struct sockaddr     ifru_dstaddr;
+        struct sockaddr     ifru_broadaddr;
+        struct sockaddr     ifru_netmask;
+        struct sockaddr     ifru_hwaddr;
+        short               ifru_flags;
+        int                 ifru_ifindex;
+        int                 ifru_mtu;
+        int                 ifru_metric;
+        int                 ifru_type;
+        int                 ifru_tcpaf;
+        int                 ifru_tcpwnd;
+        void               *ifru_data;
+    } ifr_ifru;
+};
+
+#define ifr_name            ifr_ifrn.ifrn_name
+#define ifr_addr            ifr_ifru.ifru_addr
+#define ifr_dstaddr         ifr_ifru.ifru_dstaddr
+#define ifr_netmask         ifr_ifru.ifru_netmask
+#define ifr_broadaddr       ifr_ifru.ifru_broadaddr
+#define ifr_hwaddr          ifr_ifru.ifru_hwaddr
+#define ifr_flags           ifr_ifru.ifru_flags
+#define ifr_ifindex         ifr_ifru.ifru_ifindex
+#define ifr_mtu             ifr_ifru.ifru_mtu
+#define ifr_metric          ifr_ifru.ifru_metric
+#define ifr_type            ifr_ifru.ifru_type
+#define ifr_tcpaf           ifr_ifru.ifru_tcpaf                 /* 2 ~ 127                              */
+#define ifr_tcpwnd          ifr_ifru.ifru_tcpwnd
+#define ifr_data            ifr_ifru.ifru_data
+#endif
 
 /* Socket protocol types (TCP/UDP/RAW) */
 #define SOCK_STREAM     1
@@ -415,6 +454,8 @@ typedef struct ipv6_mreq {
 #define _IOR(x,y,t)     ((long)(IOC_OUT|((sizeof(t)&IOCPARM_MASK)<<16)|((x)<<8)|(y)))
 
 #define _IOW(x,y,t)     ((long)(IOC_IN|((sizeof(t)&IOCPARM_MASK)<<16)|((x)<<8)|(y)))
+
+#define _IOWR(x,y,t)    ((long)(IOC_INOUT|((sizeof(t)&IOCPARM_MASK)<<16)|((x)<<8)|(y)))
 #endif /* !defined(FIONREAD) || !defined(FIONBIO) */
 
 #ifndef FIONREAD

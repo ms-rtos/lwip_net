@@ -387,6 +387,17 @@ struct netif {
   u16_t loop_cnt_current;
 #endif /* LWIP_LOOPBACK_MAX_PBUFS */
 #endif /* ENABLE_LOOPBACK */
+#ifdef __MS_RTOS__
+  int (*ioctl)(struct netif *netif, int cmd, void *arg);
+#define NETIF_FLAG2_DHCP        1
+#define NETIF_FLAG2_DHCP6       8
+#define NETIF_FLAG2_PROMISC     2
+#define NETIF_FLAG2_ALLMULTI    4
+  u32_t flags2;
+  u32_t metric;
+  /* ARPHRD_xxx */
+  u16_t ar_hrd;
+#endif
 };
 
 #if LWIP_CHECKSUM_CTRL_PER_NETIF

@@ -15,15 +15,21 @@
 #include "ms_kern.h"
 #include "ms_io_core.h"
 #include "ms_net_core.h"
-
 #include "ms_net_lwip.h"
+#include "ms_net_lwip_ifctl.h"
 
 #include "arpa/inet.h"
 #include "net/if.h"
+#include "net/if_types.h"
+#include "net/if_arp.h"
+#include "net/if_hwaddr.h"
+#include "netinet/in.h"
 #include "sys/socket.h"
 #include "netdb.h"
 #include "lwip/tcpip.h"
 #include "lwip/api.h"
+#include "lwip/snmp.h"
+#include "lwip/netifapi.h"
 
 /**
  * @brief LwIP Network implement.
@@ -104,9 +110,61 @@ static ssize_t __ms_lwip_socket_write(ms_ptr_t ctx, ms_io_file_t *file, ms_const
 /*
  * Control socket device
  */
-static int __ms_lwip_socket_ioctl(ms_ptr_t ctx, ms_io_file_t *file, int cmd, void *arg)
+static int __ms_lwip_socket_ioctl(ms_ptr_t ctx, ms_io_file_t *file, int cmd, ms_ptr_t arg)
 {
-    return lwip_ioctl((int)ctx, cmd, arg);
+    int ret;
+
+    switch (cmd) {
+    case SIOCGSIZIFCONF:
+    case SIOCGIFNUM:
+    case SIOCGIFCONF:
+    case SIOCSIFADDR:
+    case SIOCSIFNETMASK:
+    case SIOCSIFDSTADDR:
+    case SIOCSIFBRDADDR:
+    case SIOCSIFFLAGS:
+    case SIOCGIFADDR:
+    case SIOCGIFNETMASK:
+    case SIOCGIFDSTADDR:
+    case SIOCGIFBRDADDR:
+    case SIOCGIFFLAGS:
+    case SIOCGIFTYPE:
+    case SIOCGIFNAME:
+    case SIOCGIFINDEX:
+    case SIOCGIFMTU:
+    case SIOCSIFMTU:
+    case SIOCGIFHWADDR:
+    case SIOCSIFHWADDR:
+    case SIOCGIFMETRIC:
+    case SIOCSIFMETRIC:
+    case SIOCDIFADDR:
+    case SIOCAIFADDR:
+    case SIOCADDMULTI:
+    case SIOCDELMULTI:
+    case SIOCGIFTCPAF:
+    case SIOCSIFTCPAF:
+    case SIOCGIFTCPWND:
+    case SIOCSIFTCPWND:
+    case SIOCGIFPFLAGS:
+    case SIOCSIFPFLAGS:
+    case SIOCGSIZIFREQ6:
+    case SIOCSIFADDR6:
+    case SIOCSIFNETMASK6:
+    case SIOCSIFDSTADDR6:
+    case SIOCGIFADDR6:
+    case SIOCGIFNETMASK6:
+    case SIOCGIFDSTADDR6:
+    case SIOCDIFADDR6:
+    case SIOCGIFSTATS:
+        ret = __ms_lwip_if_ioctl_inet(cmd, arg);
+        break;
+
+    default:
+        ret = lwip_ioctl((int)ctx, cmd, arg);
+        break;
+    }
+
+    return ret;
 }
 
 /*
@@ -316,7 +374,9 @@ ms_err_t ms_lwip_net_init(void (*init_done_callback)(ms_ptr_t arg), ms_ptr_t arg
     return err;
 }
 
-#if (MS_CFG_NET_SHELL_CMD_EN > 0U) && (LWIP_STATS > 0U) && (LWIP_STATS_DISPLAY > 0U)
+#include "ms_shell_cfg.h"
+
+#if (MS_CFG_SHELL_MODULE_EN > 0) && (MS_CFG_NET_SHELL_CMD_EN > 0) && (LWIP_STATS > 0U) && (LWIP_STATS_DISPLAY > 0U)
 
 #include "ms_shell.h"
 

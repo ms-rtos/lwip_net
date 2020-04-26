@@ -1266,7 +1266,7 @@ netconn_join_leave_group_netif(struct netconn *conn,
  *         ERR_ARG: dns client not initialized or invalid hostname
  *         ERR_VAL: dns server response was invalid
  */
-#if LWIP_IPV4 && LWIP_IPV6
+#if LWIP_IPV4 && LWIP_IPV6 || defined(__MS_RTOS__)
 err_t
 netconn_gethostbyname_addrtype(const char *name, ip_addr_t *addr, u8_t dns_addrtype)
 #else
