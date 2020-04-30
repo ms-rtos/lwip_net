@@ -43,6 +43,25 @@
 #define LW_UNLIKELY(x)          (x)
 #endif
 
+struct netif *netif_mipif_ip4_route_src(const ip4_addr_t *src, const ip4_addr_t *dest)
+{
+  struct netif *netif;
+  u8_t match = 0;
+
+  NETIF_FOREACH(netif) {
+    if (ip4_addr_cmp(src, netif_ip4_addr(netif))) {
+      match = 1;
+      break;
+    }
+  }
+
+  if (!match) {
+    netif = NULL;
+  }
+
+  return netif;
+}
+
 /* add a IP to netif init callback */
 static err_t netif_mipif_init (struct netif *mipif)
 {

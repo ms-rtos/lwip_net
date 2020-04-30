@@ -410,12 +410,14 @@ struct netif {
 char *netif_get_name(struct netif *netif, char *name);
 u32_t netif_get_flags(struct netif *pnetif);
 u32_t netif_get_total(void);
+struct netif *netif_mipif_ip4_route_src(const ip4_addr_t *src, const ip4_addr_t *dest);
 
 #if MS_LWIP_NETIF_MIP_EN > 0
 #define netif_is_mipif(netif)               ((netif)->is_mipif)
 #define netif_has_mipif(netif)              ((netif)->mipif != NULL)
 #define netif_get_masterif(netif)           (netif_is_mipif(netif) ? (netif)->state : (netif))
 #define NETIF_MIPIF_FOREACH(netif, mipif)   for ((mipif) = netif->mipif; (mipif) != NULL; (mipif) = (mipif)->mipif)
+#define LWIP_HOOK_IP4_ROUTE_SRC             netif_mipif_ip4_route_src
 #endif
 #endif
 

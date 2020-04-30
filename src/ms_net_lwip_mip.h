@@ -19,6 +19,8 @@ extern "C" {
 
 #ifdef __MS_KERNEL_SPACE
 
+struct netif *netif_mipif_ip4_route_src(const ip4_addr_t *src, const ip4_addr_t *dest);
+
 /* add a IP to netif (use slave interface) */
 int netif_mipif_add(struct netif *netif, const ip4_addr_t *ip4,
                     const ip4_addr_t *netmask4, const ip4_addr_t *gw4);
