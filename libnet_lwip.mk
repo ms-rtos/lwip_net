@@ -40,7 +40,8 @@ $(wildcard ./src/lwIP/src/core/ipv6/*.c) \
 $(wildcard ./src/lwIP/src/netif/*.c) \
 ./src/ms_net_lwip_porting.c \
 ./src/ms_net_lwip.c \
-./src/ms_net_lwip_ifctl.c
+./src/ms_net_lwip_ifctl.c \
+./src/ms_net_lwip_mip.c
 
 LOCAL_EXCLUDE_SRCS := \
 ./src/lwIP/src/api/netdb.c \

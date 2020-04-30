@@ -388,17 +388,36 @@ struct netif {
 #endif /* LWIP_LOOPBACK_MAX_PBUFS */
 #endif /* ENABLE_LOOPBACK */
 #ifdef __MS_RTOS__
+#if MS_LWIP_NETIF_CTL_EN > 0
   int (*ioctl)(struct netif *netif, int cmd, void *arg);
 #define NETIF_FLAG2_DHCP        1
 #define NETIF_FLAG2_DHCP6       8
 #define NETIF_FLAG2_PROMISC     2
 #define NETIF_FLAG2_ALLMULTI    4
   u32_t flags2;
-  u32_t metric;
+  int metric;
   /* ARPHRD_xxx */
   u16_t ar_hrd;
 #endif
+#if MS_LWIP_NETIF_MIP_EN > 0
+  u8_t is_mipif;
+  struct netif *mipif;
+#endif
+#endif
 };
+
+#ifdef __MS_RTOS__
+char *netif_get_name(struct netif *netif, char *name);
+u32_t netif_get_flags(struct netif *pnetif);
+u32_t netif_get_total(void);
+
+#if MS_LWIP_NETIF_MIP_EN > 0
+#define netif_is_mipif(netif)               ((netif)->is_mipif)
+#define netif_has_mipif(netif)              ((netif)->mipif != NULL)
+#define netif_get_masterif(netif)           (netif_is_mipif(netif) ? (netif)->state : (netif))
+#define NETIF_MIPIF_FOREACH(netif, mipif)   for ((mipif) = netif->mipif; (mipif) != NULL; (mipif) = (mipif)->mipif)
+#endif
+#endif
 
 #if LWIP_CHECKSUM_CTRL_PER_NETIF
 #define NETIF_SET_CHECKSUM_CTRL(netif, chksumflags) do { \

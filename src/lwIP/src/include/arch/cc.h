@@ -87,7 +87,11 @@ typedef int sys_prot_t;
 
 extern ms_printf_func_t ms_lwip_platform_diag;
 
-#define LWIP_PLATFORM_DIAG(x) do { ms_lwip_platform_diag x; } while(0)
+#define LWIP_PLATFORM_DIAG(x) do {                                       \
+                                    if (ms_lwip_platform_diag != NULL) { \
+                                        ms_lwip_platform_diag x;         \
+                                    }                                    \
+                              } while(0)
 
 #else
 #define LWIP_PLATFORM_ASSERT(x) do { ms_log(MS_LOG_ERR, "Assertion \"%s\" failed at line %d in %s\n", \

@@ -40,10 +40,77 @@ extern ms_bool_t lwip_msrtos_socket_writable_check(int s);
 extern ms_bool_t lwip_msrtos_socket_except_check(int s);
 extern int       lwip_msrtos_socket_ctx_set(int s, void *ctx);
 
-#define MS_LWIP_NET_IMPL_NAME       "ms_lwip_net"
-#define MS_LWIP_SOCKET_DRV_NAME     "ms_lwip_socket"
+#define MS_LWIP_NET_IMPL_NAME           "ms_lwip_net"
+#define MS_LWIP_SOCKET_DRV_NAME         "ms_lwip_socket"
 
-static ms_bool_t ms_lwip_inited = MS_FALSE;
+static ms_bool_t ms_lwip_inited        = MS_FALSE;
+ms_printf_func_t ms_lwip_platform_diag = ms_printf;
+
+/*
+ * Get the name of netif
+ */
+char *netif_get_name(struct netif *netif, char *name)
+{
+    if (netif != MS_NULL) {
+        name[0] = netif->name[0];
+        name[1] = netif->name[1];
+        lwip_itoa(&name[2], NETIF_NAMESIZE - 2, netif->num);
+        return name;
+    }
+    return MS_NULL;
+}
+
+/*
+ * Get the total number of netif
+ */
+u32_t netif_get_total(void)
+{
+    u32_t total = 0;
+    struct netif *netif;
+
+    NETIF_FOREACH(netif) {
+        total++;
+    }
+
+    return total;
+}
+
+/*
+ * Get the flags of netif
+ */
+u32_t netif_get_flags(struct netif *pnetif)
+{
+    u32_t flags = 0;
+
+    if (pnetif->flags & NETIF_FLAG_UP) {
+        flags |= IFF_UP;
+    }
+    if (pnetif->flags & NETIF_FLAG_BROADCAST) {
+        flags |= IFF_BROADCAST;
+    } else {
+        flags |= IFF_POINTOPOINT;
+    }
+    if (pnetif->flags & NETIF_FLAG_LINK_UP) {
+        flags |= IFF_RUNNING;
+    }
+    if (pnetif->flags & NETIF_FLAG_IGMP) {
+        flags |= IFF_MULTICAST;
+    }
+    if ((pnetif->flags & NETIF_FLAG_ETHARP) == 0) {
+        flags |= IFF_NOARP;
+    }
+    if (pnetif->link_type == snmp_ifType_softwareLoopback) {
+        flags |= IFF_LOOPBACK;
+    }
+    if ((pnetif->flags2 & NETIF_FLAG2_PROMISC)) {
+        flags |= IFF_PROMISC;
+    }
+    if ((pnetif->flags2 & NETIF_FLAG2_ALLMULTI)) {
+        flags |= IFF_ALLMULTI;
+    }
+
+    return  (flags);
+}
 
 /*
  * Open socket device
@@ -115,6 +182,7 @@ static int __ms_lwip_socket_ioctl(ms_ptr_t ctx, ms_io_file_t *file, int cmd, ms_
     int ret;
 
     switch (cmd) {
+#if MS_LWIP_NETIF_CTL_EN > 0
     case SIOCGSIZIFCONF:
     case SIOCGIFNUM:
     case SIOCGIFCONF:
@@ -158,6 +226,7 @@ static int __ms_lwip_socket_ioctl(ms_ptr_t ctx, ms_io_file_t *file, int cmd, ms_
     case SIOCGIFSTATS:
         ret = __ms_lwip_if_ioctl_inet(cmd, arg);
         break;
+#endif
 
     default:
         ret = lwip_ioctl((int)ctx, cmd, arg);
@@ -253,6 +322,9 @@ static ms_io_driver_t ms_lwip_socket_drv = {
         .ops = &ms_lwip_socket_drv_ops,
 };
 
+/*
+ * Create socket
+ */
 static int __ms_lwip_socket(int domain, int type, int protocol)
 {
     int lwip_fd = lwip_socket(domain, type, protocol);
@@ -272,6 +344,9 @@ static int __ms_lwip_socket(int domain, int type, int protocol)
     return fd;
 }
 
+/*
+ * Do accept
+ */
 static int __ms_lwip_accept(ms_ptr_t ctx, ms_io_file_t *file, struct sockaddr *addr, socklen_t *addrlen)
 {
     int accept_lwip_fd;
@@ -292,6 +367,9 @@ static int __ms_lwip_accept(ms_ptr_t ctx, ms_io_file_t *file, struct sockaddr *a
     return accept_fd;
 }
 
+/*
+ * Get the host name
+ */
 static int __ms_lwip_gethostname(char *name, size_t len)
 {
     int ret;
@@ -312,6 +390,9 @@ static int __ms_lwip_gethostname(char *name, size_t len)
     return ret;
 }
 
+/*
+ * Set the host name
+ */
 static int __ms_lwip_sethostname(const char *name, size_t len)
 {
     ms_thread_set_errno(EOPNOTSUPP);
@@ -376,12 +457,11 @@ ms_err_t ms_lwip_net_init(void (*init_done_callback)(ms_ptr_t arg), ms_ptr_t arg
 
 #include "ms_shell_cfg.h"
 
-#if (MS_CFG_SHELL_MODULE_EN > 0) && (MS_CFG_NET_SHELL_CMD_EN > 0) && (LWIP_STATS > 0U) && (LWIP_STATS_DISPLAY > 0U)
+#if (MS_CFG_SHELL_MODULE_EN > 0) && (MS_CFG_NET_SHELL_CMD_EN > 0)
 
 #include "ms_shell.h"
 
-ms_printf_func_t ms_lwip_platform_diag = ms_printf;
-
+#if (LWIP_STATS > 0U) && (LWIP_STATS_DISPLAY > 0U)
 /**
  * @brief lwIP stat command.
  *
@@ -403,7 +483,243 @@ static void __ms_shell_lwip_stat(int argc, char *argv[], const ms_shell_io_t *io
         io->_printf("lwIP no init!\n");
     }
 }
+MS_SHELL_CMD(lwipstat, __ms_shell_lwip_stat, "Show lwIP network statistics", __ms_shell_cmd_lwip_stat);
+#endif
 
-MS_SHELL_CMD(lwipstat, __ms_shell_lwip_stat,  "Show lwIP network statistics", __ms_shell_cmd_lwip_stat);
+static void  __ms_lwip_speed_string(struct netif *netif, char *speed_str, size_t size)
+{
+    u64_t speed = netif->link_speed;
+
+    if (speed == 0) {
+        strlcpy(speed_str, "N/A", size);
+
+    } else if (speed < 1000ull) {
+        ms_snprintf(speed_str, size, "%qu bps", speed);
+
+    } else if (speed < 5000000ull) {
+        ms_snprintf(speed_str, size, "%qu Kbps", speed / 1000);
+
+    } else if (speed < 5000000000ull) {
+        ms_snprintf(speed_str, size, "%qu Mbps", speed / 1000000);
+
+    } else {
+        ms_snprintf(speed_str, size, "%qu Gbps", speed / 1000000000);
+    }
+}
+
+static char *__ms_lwip_octets(u64_t value, char *buffer, size_t size)
+{
+    if (value > (1204 * 1024 * 1024)) {
+        value = (value >> 20);
+        ms_snprintf(buffer, size, "%qu.%qu GB", (value >> 10), (value & 0x3ff) / 102);
+
+    } else if (value > (1204 * 1024)) {
+        value = (value >> 10);
+        ms_snprintf(buffer, size, "%qu.%qu MB", (value >> 10), (value & 0x3ff) / 102);
+
+    } else if (value > 1024) {
+        ms_snprintf(buffer, size, "%qu.%qu KB", (value >> 10), (value & 0x3ff) / 102);
+
+    } else {
+        ms_snprintf(buffer, size, "%qu.0 B", value);
+    }
+
+    return  (buffer);
+}
+
+/**
+ * @brief lwIP netif show.
+ *
+ * @param[in] netif Pointer to lwIP netif
+ * @param[in] io Pointer to shell io driver
+ *
+ * @return N/A
+ */
+static void __ms_lwip_netif_show(struct netif *netif, const ms_shell_io_t *io)
+{
+#define MIB2_NETIF(netif)   (&((netif)->mib2_counters))
+    char             if_name[NETIF_NAMESIZE];
+    char             buffer1[32];
+    char             buffer2[32];
+    const char *     dev_name = "N/A";
+    ip4_addr_t       broadcast_addr;
+    int              i, flags;
+
+    io->_printf("%-5s%4s ", netif_get_name(netif, if_name), "");        /*  网卡名称                    */
+
+    if (netif->flags & (NETIF_FLAG_ETHARP | NETIF_FLAG_ETHERNET)) {     /*  以太网络                    */
+        io->_printf("Link encap: Ethernet HWaddr: ");
+        for (i = 0; i < netif->hwaddr_len - 1; i++) {
+            io->_printf("%02x:", netif->hwaddr[i]);
+        }
+        io->_printf("%02x\n", netif->hwaddr[netif->hwaddr_len - 1]);
+
+    } else {
+        if ((netif->flags & NETIF_FLAG_BROADCAST) == 0) {               /*  点对点网络接口              */
+            if (netif->link_type == snmp_ifType_softwareLoopback) {
+                io->_printf("Link encap: Local Loopback\n");
+            } else if (netif->link_type == snmp_ifType_ppp) {
+                io->_printf("Link encap: PPP Link\n");
+            } else if (netif->link_type == snmp_ifType_slip) {
+                io->_printf("Link encap: SLIP Link\n");
+            } else {
+                io->_printf("Link encap: General\n");
+            }
+
+        } else {                                                        /*  通用网络接口                */
+            io->_printf("Link encap: General\n");
+        }
+    }
+
+    __ms_lwip_speed_string(netif, buffer1, sizeof(buffer1));
+
+#if MS_LWIP_NETIF_MIP_EN > 0
+    if (netif_is_mipif(netif)) {
+        io->_printf("%9s Mif: %s Ifidx: %d ", "",
+               netif_get_name(netif_get_masterif(netif), if_name), netif_get_index(netif));
+    } else
+#endif                                                                  /*  MS_LWIP_NETIF_MIP_EN        */
+    {
+        io->_printf("%9s Dev: %s Ifidx: %d ", "",
+               dev_name, netif_get_index(netif));
+    }
+
+#if LWIP_DHCP
+    io->_printf("DHCP: %s%s %s%s Spd: %s\n",
+           (netif->flags2 & NETIF_FLAG2_DHCP) ? "E4" : "D4",
+           (netif->flags2 & NETIF_FLAG2_DHCP) ? ((netif_dhcp_data(netif)) ? "(On)" : "(Off)") : "",
+#if LWIP_IPV6_DHCP6
+           (netif->flags2 & NETIF_FLAG2_DHCP6) ? "E6" : "D6",
+           (netif->flags2 & NETIF_FLAG2_DHCP6) ? ((netif_dhcp6_data(netif)) ? "(On)" : "(Off)") : "",
+#else
+           "", "",
+#endif                                                                  /*  LWIP_IPV6_DHCP6             */
+           buffer1);
+#else
+    io->_printf("Spd: %s\n", cBuffer1);
+#endif                                                                  /*  LWIP_DHCP                   */
+
+    io->_printf("%9s inet addr: %d.%d.%d.%d ", "",
+           ip4_addr1(netif_ip4_addr(netif)), ip4_addr2(netif_ip4_addr(netif)),
+           ip4_addr3(netif_ip4_addr(netif)), ip4_addr4(netif_ip4_addr(netif)));
+    io->_printf("netmask: %d.%d.%d.%d\n",
+           ip4_addr1(netif_ip4_netmask(netif)), ip4_addr2(netif_ip4_netmask(netif)),
+           ip4_addr3(netif_ip4_netmask(netif)), ip4_addr4(netif_ip4_netmask(netif)));
+
+    if ((netif->flags & NETIF_FLAG_BROADCAST) == 0) {
+        io->_printf("%9s P-to-P: %d.%d.%d.%d ", "",
+               ip4_addr1(netif_ip4_gw(netif)), ip4_addr2(netif_ip4_gw(netif)),
+               ip4_addr3(netif_ip4_gw(netif)), ip4_addr4(netif_ip4_gw(netif)));
+        io->_printf("broadcast: N/A\n");
+
+    } else {
+        io->_printf("%9s gateway: %d.%d.%d.%d ", "",
+               ip4_addr1(netif_ip4_gw(netif)), ip4_addr2(netif_ip4_gw(netif)),
+               ip4_addr3(netif_ip4_gw(netif)), ip4_addr4(netif_ip4_gw(netif)));
+        broadcast_addr.addr = (netif_ip4_addr(netif)->addr | (~netif_ip4_netmask(netif)->addr));
+        io->_printf("broadcast: %d.%d.%d.%d\n",
+               ip4_addr1(&broadcast_addr), ip4_addr2(&broadcast_addr),
+               ip4_addr3(&broadcast_addr), ip4_addr4(&broadcast_addr));
+    }
+
+#if LWIP_IPV6
+    for (i = 0; i < LWIP_IPV6_NUM_ADDRESSES; i++) {
+        const char *addr_type;
+        char        buffer[64];
+
+        if (ip6_addr_isglobal(ip_2_ip6(&netif->ip6_addr[i]))) {
+            addr_type = "Global";
+        } else if (ip6_addr_islinklocal(ip_2_ip6(&netif->ip6_addr[i]))) {
+            addr_type = "Link";
+        } else if (ip6_addr_issitelocal(ip_2_ip6(&netif->ip6_addr[i]))) {
+            addr_type = "Site";
+        } else if (ip6_addr_isuniquelocal(ip_2_ip6(&netif->ip6_addr[i]))) {
+            addr_type = "Unique";
+        } else if (ip6_addr_isloopback(ip_2_ip6(&netif->ip6_addr[i]))) {
+            addr_type = "Loopback";
+        } else {
+            addr_type = "Unknown";
+        }
+
+        if (ip6_addr_isvalid(netif->ip6_addr_state[i])) {
+            io->_printf("%9s inet6 addr: %s Scope:%s\n", "",
+                   ip6addr_ntoa_r(ip_2_ip6(&netif->ip6_addr[i]), buffer, sizeof(buffer)),
+                   addr_type);
+
+        } else if (ip6_addr_istentative(netif->ip6_addr_state[i])) {
+            io->_printf("%9s inet6 addr: %s Scope:%s<T%d>\n", "",
+                   ip6addr_ntoa_r(ip_2_ip6(&netif->ip6_addr[i]), buffer, sizeof(buffer)),
+                   addr_type, (netif->ip6_addr_state[i] & IP6_ADDR_TENTATIVE_7) - 8);
+        }
+    }
+#endif                                                                  /*  LWIP_IPV6                   */
+
+    io->_printf("%9s ", "");
+    flags = netif_get_flags(netif);
+    if (flags & IFF_UP) {
+        io->_printf("UP ");
+    }
+    if (flags & IFF_BROADCAST) {
+        io->_printf("BROADCAST ");
+    }
+    if (flags & IFF_LOOPBACK) {
+        io->_printf("LOOPBACK ");
+    }
+    if (flags & IFF_RUNNING) {
+        io->_printf("RUNNING ");
+    }
+    if (flags & IFF_MULTICAST) {
+        io->_printf("MULTICAST ");
+    }
+    if (netif->flags & (NETIF_FLAG_ETHARP | NETIF_FLAG_ETHERNET)) {
+        if (flags & IFF_NOARP) {
+            io->_printf("NOARP ");
+        }
+    }
+    io->_printf(" MTU:%d  Metric:%d\n", netif->mtu, netif->metric);
+
+    if (netif_is_mipif(netif)) {
+        io->_printf("\n");
+        return;
+    }
+
+    io->_printf("%9s noproto:%u\n", "",
+           (unsigned)MIB2_NETIF(netif)->ifinunknownprotos);
+
+    io->_printf("%9s RX ucast packets:%u nucast packets:%u dropped:%u\n", "",
+            (unsigned)MIB2_NETIF(netif)->ifinucastpkts, (unsigned)MIB2_NETIF(netif)->ifinnucastpkts, (unsigned)MIB2_NETIF(netif)->ifindiscards);
+    io->_printf("%9s TX ucast packets:%u nucast packets:%u dropped:%u\n", "",
+            (unsigned)MIB2_NETIF(netif)->ifoutucastpkts, (unsigned)MIB2_NETIF(netif)->ifoutnucastpkts, (unsigned)MIB2_NETIF(netif)->ifoutdiscards);
+    io->_printf("%9s RX bytes:%qu (%s)  TX bytes:%qu (%s)\n", "",
+           MIB2_NETIF(netif)->ifinoctets,
+           __ms_lwip_octets(MIB2_NETIF(netif)->ifinoctets, buffer1, sizeof(buffer1)),
+           MIB2_NETIF(netif)->ifoutoctets,
+           __ms_lwip_octets(MIB2_NETIF(netif)->ifoutoctets, buffer2, sizeof(buffer2)));
+    io->_printf("\n");
+}
+
+/**
+ * @brief lwIP netifs command.
+ *
+ * @param[in] argc Arguments count
+ * @param[in] argv Arguments array
+ * @param[in] io Pointer to shell io driver
+ *
+ * @return N/A
+ */
+static void __ms_shell_lwip_netifs(int argc, char *argv[], const ms_shell_io_t *io)
+{
+    if (ms_lwip_inited) {
+        struct netif *netif;
+
+        NETIF_FOREACH(netif) {
+            __ms_lwip_netif_show(netif, io);
+        }
+    } else {
+        io->_printf("lwIP no init!\n");
+    }
+}
+
+MS_SHELL_CMD(netifs,   __ms_shell_lwip_netifs, "Show all lwIP netif info", __ms_shell_cmd_lwip_netifs);
 
 #endif

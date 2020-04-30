@@ -13,6 +13,11 @@
 #ifndef MS_NET_LWIP_CFG_H
 #define MS_NET_LWIP_CFG_H
 
+#define MS_LWIP_NETIF_CTL_EN    1
+#define MS_LWIP_NETIF_MIP_EN    1
+
+#define LWIP_HAVE_INT64         1
+
 #define LWIP_COMPAT_SOCKETS     0
 
 #define LWIP_NETIF_API          1
@@ -36,13 +41,13 @@ a lot of data that needs to be copied, this should be set high. */
 /* MEMP_NUM_PBUF: the number of memp struct pbufs. If the application
    sends a lot of data out of ROM (or other static memory), this
    should be set high. */
-#define MEMP_NUM_PBUF           10
+#define MEMP_NUM_PBUF           32
 /* MEMP_NUM_UDP_PCB: the number of UDP protocol control blocks. One
    per active UDP "connection". */
-#define MEMP_NUM_UDP_PCB        6
+#define MEMP_NUM_UDP_PCB        16
 /* MEMP_NUM_TCP_PCB: the number of simulatenously active TCP
    connections. */
-#define MEMP_NUM_TCP_PCB        10
+#define MEMP_NUM_TCP_PCB        16
 /* MEMP_NUM_TCP_PCB_LISTEN: the number of listening TCP
    connections. */
 #define MEMP_NUM_TCP_PCB_LISTEN 5
@@ -57,12 +62,12 @@ a lot of data that needs to be copied, this should be set high. */
  * MEMP_NUM_NETCONN: the number of struct netconns.
  * (only needed if you use the sequential API, like api_lib.c)
  */
-#define MEMP_NUM_NETCONN        20
+#define MEMP_NUM_NETCONN        32
 
 
 /* ---------- Pbuf options ---------- */
 /* PBUF_POOL_SIZE: the number of buffers in the pbuf pool. */
-#define PBUF_POOL_SIZE          8
+#define PBUF_POOL_SIZE          32
 
 /* PBUF_POOL_BUFSIZE: the size of each pbuf in the pbuf pool. */
 #define PBUF_POOL_BUFSIZE       1524

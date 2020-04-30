@@ -4,7 +4,7 @@
  *
  * Detailed license information can be found in the LICENSE file.
  *
- * File: ms_net_lwip_ifctl.c lwIP if control.
+ * File: ms_net_lwip_ifctl.c lwIP netif control.
  *
  * Author: Jiao.jinxing <jiaojixing@acoinfo.com>
  *
@@ -30,95 +30,41 @@
 #include "lwip/snmp.h"
 #include "lwip/netifapi.h"
 
-typedef int   INT;
-typedef void  VOID;
-typedef void *PVOID;
+#include "ms_net_lwip_ifctl.h"
+#include "ms_net_lwip_mip.h"
 
-#define PX_ERROR                        -1
-#define ERROR_NONE                      0
-#define LW_NULL                         MS_NULL
+#if MS_LWIP_NETIF_CTL_EN > 0
 
-#define _ErrorHandle(err)               ms_thread_set_errno(err)
-#define LWIP_IF_LIST_LOCK(write)        LOCK_TCPIP_CORE()
-#define LWIP_IF_LIST_UNLOCK()           UNLOCK_TCPIP_CORE()
-#define __ifIoctlInet                   __ms_lwip_if_ioctl_inet
-
-/**
-* @ingroup netif
-* Get netif name by struct netif
-*
-* @param netif
-* @param netif name buffer
-*/
-static char *
-netif_get_name(struct netif *netif, char *name) /* SylixOS Add this function */
-{
-  if (netif != NULL) {
-    name[0] = netif->name[0];
-    name[1] = netif->name[1];
-    lwip_itoa(&name[2], NETIF_NAMESIZE - 2, netif->num);
-    return name;
-  }
-  return NULL;
-}
-
-/**
-* @ingroup netif
-* Get netif total num
-*/
-static unsigned int
-netif_get_total(void)
-{
-  unsigned int total = 0;
-  struct netif *netif;
-
-  NETIF_FOREACH(netif) {
-    total++;
-  }
-
-  return total;
-}
 /*********************************************************************************************************
-** 函数名称: netif_get_flags
-** 功能描述: 获得网络接口 flags
-** 输　入  : 网络接口
-** 输　出  : flags
-** 全局变量:
-** 调用模块:
+  SylixOS 兼容层
 *********************************************************************************************************/
-static INT  netif_get_flags (struct netif *pnetif)
-{
-    INT  iFlags = 0;
 
-    if (pnetif->flags & NETIF_FLAG_UP) {
-        iFlags |= IFF_UP;
-    }
-    if (pnetif->flags & NETIF_FLAG_BROADCAST) {
-        iFlags |= IFF_BROADCAST;
-    } else {
-        iFlags |= IFF_POINTOPOINT;
-    }
-    if (pnetif->flags & NETIF_FLAG_LINK_UP) {
-        iFlags |= IFF_RUNNING;
-    }
-    if (pnetif->flags & NETIF_FLAG_IGMP) {
-        iFlags |= IFF_MULTICAST;
-    }
-    if ((pnetif->flags & NETIF_FLAG_ETHARP) == 0) {
-        iFlags |= IFF_NOARP;
-    }
-    if (pnetif->link_type == snmp_ifType_softwareLoopback) {
-        iFlags |= IFF_LOOPBACK;
-    }
-    if ((pnetif->flags2 & NETIF_FLAG2_PROMISC)) {
-        iFlags |= IFF_PROMISC;
-    }
-    if ((pnetif->flags2 & NETIF_FLAG2_ALLMULTI)) {
-        iFlags |= IFF_ALLMULTI;
-    }
+typedef int         INT;
+typedef void        VOID;
+typedef void       *PVOID;
 
-    return  (iFlags);
-}
+#define PX_ERROR                    -1
+#define ERROR_NONE                  0
+
+#define LW_NULL                     MS_NULL
+
+#define LW_TRUE                     MS_TRUE
+#define LW_FALSE                    MS_FALSE
+
+#define netdev                      netif
+
+#define _ErrorHandle(err)           ms_thread_set_errno(err)
+
+#define __ifIoctlInet               __ms_lwip_if_ioctl_inet
+
+#define netdev_mipif_add            netif_mipif_add
+#define netdev_mipif_delete         netif_mipif_delete
+
+#define LWIP_IF_LIST_LOCK(write)    LOCK_TCPIP_CORE()
+#define LWIP_IF_LIST_UNLOCK()       UNLOCK_TCPIP_CORE()
+
+#define LW_CFG_NET_NETDEV_MIP_EN    MS_LWIP_NETIF_MIP_EN
+
 /*********************************************************************************************************
 ** 函数名称: __ifConfSize
 ** 功能描述: 获得网络接口列表保存所需要的内存大小
@@ -543,6 +489,77 @@ static INT  __ifSubIoctl4 (INT  iCmd, PVOID  pvArg)
     return  (iRet);
 }
 /*********************************************************************************************************
+** 函数名称: __ifSubIoctlAlias4
+** 功能描述: 网络接口 ioctl 操作 (针对添加删除 IP 操作)
+** 输　入  : iCmd      命令
+**           pvArg     参数
+** 输　出  : 处理结果
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static INT  __ifSubIoctlAlias4 (INT  iCmd, PVOID  pvArg)
+{
+#if LW_CFG_NET_NETDEV_MIP_EN > 0
+           INT           iRet    = PX_ERROR;
+    struct ifreq        *pifreq  = LW_NULL;
+    struct ifaliasreq   *pifareq = LW_NULL;
+    struct netif        *pnetif;
+    struct netdev       *pnetdev;
+    struct sockaddr_in  *psockaddrin;
+
+    pifreq = (struct ifreq *)pvArg;                                     /*  两个结构接口名偏移量相同    */
+
+    pnetif = netif_find(pifreq->ifr_name);
+    if (pnetif == LW_NULL) {
+        _ErrorHandle(EADDRNOTAVAIL);                                    /*  未找到指定的网络接口        */
+        return  (iRet);
+    }
+
+#ifdef SYLIXOS
+    pnetdev = netdev_find_by_ifname(pifreq->ifr_name);
+#else
+    pnetdev = netif_get_masterif(pnetif);
+#endif
+    if (pnetdev == LW_NULL) {
+        _ErrorHandle(EADDRNOTAVAIL);                                    /*  未找到指定的网络设备        */
+        return  (iRet);
+    }
+
+    switch (iCmd) {                                                     /*  命令处理器                  */
+
+    case SIOCDIFADDR:                                                   /*  删除一个辅助 IP             */
+        psockaddrin = (struct sockaddr_in *)&(pifreq->ifr_addr);
+        if (psockaddrin->sin_family == AF_INET) {
+            ip4_addr_t ipaddr;
+            ipaddr.addr = psockaddrin->sin_addr.s_addr;
+            iRet = netdev_mipif_delete(pnetdev, &ipaddr);
+        } else {
+            _ErrorHandle(EAFNOSUPPORT);
+        }
+        break;
+
+    case SIOCAIFADDR:                                                   /*  添加一个辅助 IP             */
+        pifareq = (struct ifaliasreq *)pvArg;
+        if (pifareq->ifra_addr.sa_family == AF_INET) {
+            ip4_addr_t ipaddr, netmask;
+            psockaddrin = (struct sockaddr_in *)&(pifareq->ifra_addr);
+            ipaddr.addr = psockaddrin->sin_addr.s_addr;
+            psockaddrin = (struct sockaddr_in *)&(pifareq->ifra_mask);
+            netmask.addr = psockaddrin->sin_addr.s_addr;
+            iRet = netdev_mipif_add(pnetdev, &ipaddr, &netmask, LW_NULL);
+        } else {
+            _ErrorHandle(EAFNOSUPPORT);
+        }
+        break;
+    }
+
+    return  (iRet);
+#else
+    _ErrorHandle(ENOSYS);
+    return  (PX_ERROR);
+#endif                                                                  /*  LW_CFG_NET_NETDEV_MIP_EN    */
+}
+/*********************************************************************************************************
 ** 函数名称: __ifSubIoctl6
 ** 功能描述: 网络接口 ioctl 操作 (针对 ipv6)
 ** 输　入  : iCmd      命令
@@ -574,12 +591,10 @@ static INT  __ifSubIoctl6 (INT  iCmd, PVOID  pvArg)
         return  (iRet);
     }
 
-#if 0 /* TODO: 暂未实现 */
     if (netif_is_mipif(pnetif)) {
         _ErrorHandle(ENOSYS);
         return  (iRet);
     }
-#endif
 
     iSize = pifreq6->ifr6_len / sizeof(struct in6_ifr_addr);            /*  缓冲区个数                  */
     pifr6addr = pifreq6->ifr6_addr_array;
@@ -666,7 +681,7 @@ static INT  __ifSubIoctl6 (INT  iCmd, PVOID  pvArg)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-INT  __ifSubIoctlStats (INT  iCmd, PVOID  pvArg)
+static INT  __ifSubIoctlStats (INT  iCmd, PVOID  pvArg)
 {
 #define MIB2_NETIF(netif)   (&((netif)->mib2_counters))
 
@@ -682,7 +697,6 @@ INT  __ifSubIoctlStats (INT  iCmd, PVOID  pvArg)
         return  (iRet);
     }
 
-#if 0 /* TODO: 暂未实现 */
     if (netif_is_mipif(pnetif)) {
         pnetif = netif_get_masterif(pnetif);
         if (pnetif == LW_NULL) {
@@ -690,13 +704,12 @@ INT  __ifSubIoctlStats (INT  iCmd, PVOID  pvArg)
             return  (iRet);
         }
     }
-#endif
 
     switch (iCmd) {
 
     case SIOCGIFSTATS:
         pifstat->ifrs_mtu        = pnetif->mtu;
-        pifstat->ifrs_collisions = 0;                                   /*  TODO: 暂未实现              */
+        pifstat->ifrs_collisions = MIB2_NETIF(pnetif)->ifcollisions;
         pifstat->ifrs_baudrate   = pnetif->link_speed;
         pifstat->ifrs_ipackets   = MIB2_NETIF(pnetif)->ifinucastpkts + MIB2_NETIF(pnetif)->ifinnucastpkts;
         pifstat->ifrs_ierrors    = MIB2_NETIF(pnetif)->ifinerrors;
@@ -839,7 +852,6 @@ INT  __ifIoctlInet (INT  iCmd, PVOID  pvArg)
         LWIP_IF_LIST_UNLOCK();                                          /*  退出临界区                  */
         break;
 
-#if 0 /* TODO: 暂未实现 */
     case SIOCDIFADDR:
         LWIP_IF_LIST_LOCK(LW_TRUE);                                     /*  进入临界区                  */
         iRet = __ifSubIoctlAlias4(iCmd, pvArg);
@@ -851,7 +863,6 @@ INT  __ifIoctlInet (INT  iCmd, PVOID  pvArg)
         iRet = __ifSubIoctlAlias4(iCmd, pvArg);
         LWIP_IF_LIST_UNLOCK();                                          /*  退出临界区                  */
         break;
-#endif
 
 #if LWIP_IPV6
     case SIOCGIFADDR6:                                                  /*  ipv6 操作                   */
@@ -880,3 +891,5 @@ INT  __ifIoctlInet (INT  iCmd, PVOID  pvArg)
 
     return  (iRet);
 }
+
+#endif
