@@ -678,23 +678,20 @@ static void __ms_lwip_netif_show(struct netif *netif, const ms_shell_io_t *io)
     }
     io->_printf(" MTU:%d  Metric:%d\n", netif->mtu, netif->metric);
 
-    if (netif_is_mipif(netif)) {
-        io->_printf("\n");
-        return;
+    if (!netif_is_mipif(netif)) {
+        io->_printf("%9s noproto:%u\n", "",
+                (unsigned)MIB2_NETIF(netif)->ifinunknownprotos);
+
+        io->_printf("%9s RX ucast packets:%u nucast packets:%u dropped:%u\n", "",
+                (unsigned)MIB2_NETIF(netif)->ifinucastpkts, (unsigned)MIB2_NETIF(netif)->ifinnucastpkts, (unsigned)MIB2_NETIF(netif)->ifindiscards);
+        io->_printf("%9s TX ucast packets:%u nucast packets:%u dropped:%u\n", "",
+                (unsigned)MIB2_NETIF(netif)->ifoutucastpkts, (unsigned)MIB2_NETIF(netif)->ifoutnucastpkts, (unsigned)MIB2_NETIF(netif)->ifoutdiscards);
+        io->_printf("%9s RX bytes:%qu (%s)  TX bytes:%qu (%s)\n", "",
+               MIB2_NETIF(netif)->ifinoctets,
+               __ms_lwip_octets(MIB2_NETIF(netif)->ifinoctets, buffer1, sizeof(buffer1)),
+               MIB2_NETIF(netif)->ifoutoctets,
+               __ms_lwip_octets(MIB2_NETIF(netif)->ifoutoctets, buffer2, sizeof(buffer2)));
     }
-
-    io->_printf("%9s noproto:%u\n", "",
-           (unsigned)MIB2_NETIF(netif)->ifinunknownprotos);
-
-    io->_printf("%9s RX ucast packets:%u nucast packets:%u dropped:%u\n", "",
-            (unsigned)MIB2_NETIF(netif)->ifinucastpkts, (unsigned)MIB2_NETIF(netif)->ifinnucastpkts, (unsigned)MIB2_NETIF(netif)->ifindiscards);
-    io->_printf("%9s TX ucast packets:%u nucast packets:%u dropped:%u\n", "",
-            (unsigned)MIB2_NETIF(netif)->ifoutucastpkts, (unsigned)MIB2_NETIF(netif)->ifoutnucastpkts, (unsigned)MIB2_NETIF(netif)->ifoutdiscards);
-    io->_printf("%9s RX bytes:%qu (%s)  TX bytes:%qu (%s)\n", "",
-           MIB2_NETIF(netif)->ifinoctets,
-           __ms_lwip_octets(MIB2_NETIF(netif)->ifinoctets, buffer1, sizeof(buffer1)),
-           MIB2_NETIF(netif)->ifoutoctets,
-           __ms_lwip_octets(MIB2_NETIF(netif)->ifoutoctets, buffer2, sizeof(buffer2)));
     io->_printf("\n");
 }
 
