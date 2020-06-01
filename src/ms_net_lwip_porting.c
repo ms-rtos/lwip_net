@@ -18,7 +18,7 @@
 #include "lwip/stats.h"
 
 /**
- * @brief LwIP porting.
+ * @brief lwIP porting.
  */
 
 static ms_handle_t  ms_lwip_core_lockid;

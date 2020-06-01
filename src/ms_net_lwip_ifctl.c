@@ -33,6 +33,10 @@
 #include "ms_net_lwip_ifctl.h"
 #include "ms_net_lwip_mip.h"
 
+/**
+ * @brief lwIP netif control.
+ */
+
 #if MS_LWIP_NETIF_CTL_EN > 0
 
 /*********************************************************************************************************

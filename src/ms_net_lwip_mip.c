@@ -33,6 +33,10 @@
 
 #include "ms_net_lwip_mip.h"
 
+/**
+ * @brief lwIP multi IP support.
+ */
+
 #if MS_LWIP_NETIF_MIP_EN > 0
 
 #ifdef __GNUC__
