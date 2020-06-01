@@ -190,11 +190,13 @@ static int __ms_lwip_socket_ioctl(ms_ptr_t ctx, ms_io_file_t *file, int cmd, ms_
     case SIOCSIFNETMASK:
     case SIOCSIFDSTADDR:
     case SIOCSIFBRDADDR:
+    case SIOCSIFGATEWAY:
     case SIOCSIFFLAGS:
     case SIOCGIFADDR:
     case SIOCGIFNETMASK:
     case SIOCGIFDSTADDR:
     case SIOCGIFBRDADDR:
+    case SIOCGIFGATEWAY:
     case SIOCGIFFLAGS:
     case SIOCGIFTYPE:
     case SIOCGIFNAME:

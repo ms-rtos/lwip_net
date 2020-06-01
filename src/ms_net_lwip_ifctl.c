@@ -386,6 +386,7 @@ static INT  __ifSubIoctl4 (INT  iCmd, PVOID  pvArg)
     case SIOCGIFNETMASK:
     case SIOCGIFDSTADDR:
     case SIOCGIFBRDADDR:
+    case SIOCGIFGATEWAY:
         psockaddrin = (struct sockaddr_in *)&(pifreq->ifr_addr);
         psockaddrin->sin_len    = sizeof(struct sockaddr_in);
         psockaddrin->sin_family = AF_INET;
@@ -396,6 +397,7 @@ static INT  __ifSubIoctl4 (INT  iCmd, PVOID  pvArg)
     case SIOCSIFNETMASK:
     case SIOCSIFDSTADDR:
     case SIOCSIFBRDADDR:
+    case SIOCSIFGATEWAY:
         psockaddrin = (struct sockaddr_in *)&(pifreq->ifr_addr);
         break;
 
@@ -432,6 +434,11 @@ static INT  __ifSubIoctl4 (INT  iCmd, PVOID  pvArg)
         } else {
             _ErrorHandle(EINVAL);
         }
+        break;
+
+    case SIOCGIFGATEWAY:                                                /*  获取网卡网关地址            */
+        psockaddrin->sin_addr.s_addr = netif_ip4_gw(pnetif)->addr;
+        iRet = ERROR_NONE;
         break;
 
     case SIOCSIFADDR:                                                   /*  设置网卡地址                */
@@ -478,6 +485,19 @@ static INT  __ifSubIoctl4 (INT  iCmd, PVOID  pvArg)
             iRet = ERROR_NONE;
         } else {
             _ErrorHandle(EINVAL);
+        }
+        break;
+
+    case SIOCSIFGATEWAY:                                                /*  设置网卡网关地址            */
+        if (psockaddrin->sin_family == AF_INET) {
+            ip4_addr_t ipaddr;
+            ipaddr.addr = psockaddrin->sin_addr.s_addr;
+            LOCK_TCPIP_CORE();                                          /*  必须 lock 协议栈            */
+            netif_set_gw(pnetif, &ipaddr);
+            UNLOCK_TCPIP_CORE();
+            iRet = ERROR_NONE;
+        } else {
+            _ErrorHandle(EAFNOSUPPORT);
         }
         break;
     }
@@ -850,10 +870,12 @@ INT  __ifIoctlInet (INT  iCmd, PVOID  pvArg)
     case SIOCGIFNETMASK:
     case SIOCGIFDSTADDR:
     case SIOCGIFBRDADDR:
+    case SIOCGIFGATEWAY:
     case SIOCSIFADDR:
     case SIOCSIFNETMASK:
     case SIOCSIFDSTADDR:
     case SIOCSIFBRDADDR:
+    case SIOCSIFGATEWAY:
         LWIP_IF_LIST_LOCK(LW_FALSE);                                    /*  进入临界区                  */
         iRet = __ifSubIoctl4(iCmd, pvArg);
         LWIP_IF_LIST_UNLOCK();                                          /*  退出临界区                  */
