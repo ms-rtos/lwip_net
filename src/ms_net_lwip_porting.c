@@ -21,7 +21,7 @@
  * @brief lwIP porting.
  */
 
-static ms_handle_t  ms_lwip_core_lockid;
+static ms_handle_t ms_lwip_core_lockid;
 
 #if LWIP_COMPAT_MUTEX == 0
 /**
