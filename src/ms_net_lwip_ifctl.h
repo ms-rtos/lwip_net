@@ -4,7 +4,7 @@
  *
  * Detailed license information can be found in the LICENSE file.
  *
- * File: ms_net_lwip_ifctl.c lwIP netif control.
+ * File: ms_net_lwip_ifctl.h lwIP netif control.
  *
  * Author: Jiao.jinxing <jiaojixing@acoinfo.com>
  *

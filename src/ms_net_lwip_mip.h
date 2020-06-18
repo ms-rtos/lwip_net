@@ -4,7 +4,7 @@
  *
  * Detailed license information can be found in the LICENSE file.
  *
- * File: ms_net_lwip_mip.c lwIP multi IP support.
+ * File: ms_net_lwip_mip.h lwIP multi IP support.
  *
  * Author: Jiao.jinxing <jiaojixing@acoinfo.com>
  *
@@ -21,23 +21,35 @@ extern "C" {
 
 struct netif *netif_mipif_ip4_route_src(const ip4_addr_t *src, const ip4_addr_t *dest);
 
-/* add a IP to netif (use slave interface) */
+/*
+ * add a IP to netif (use slave interface)
+ */
 int netif_mipif_add(struct netif *netif, const ip4_addr_t *ip4,
                     const ip4_addr_t *netmask4, const ip4_addr_t *gw4);
 
-/* delete a IP from netif (use slave interface) */
+/*
+ * delete a IP from netif (use slave interface)
+ */
 int netif_mipif_delete(struct netif *netif, const ip4_addr_t *ip4);
 
-/* clean all slave interface */
+/*
+ * clean all slave interface
+ */
 void netif_mipif_clean(struct netif *netif);
 
-/* set all slave interface update mtu, linkup, updown */
+/*
+ * set all slave interface update mtu, linkup, updown
+ */
 void netif_mipif_update(struct netif *netif);
 
-/* set all slave interface hwaddr */
+/*
+ * set all slave interface hwaddr
+ */
 void netif_mipif_hwaddr(struct netif *netif);
 
-/* set all slave interface find */
+/*
+ * set all slave interface find
+ */
 struct netif *netif_mipif_search(struct netif *netif, struct pbuf *p);
 
 #endif
