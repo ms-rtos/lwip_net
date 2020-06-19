@@ -40,30 +40,19 @@ static ms_handle_t ms_lwip_core_lockid;
  */
 err_t sys_mutex_new(sys_mutex_t *mutex)
 {
-    err_t ret;
+    err_t err;
 
     if (ms_mutex_create("lwip_mutex", MS_WAIT_TYPE_PRIO, mutex) == MS_ERR_NONE) {
-
-#if SYS_STATS
-        ++lwip_stats.sys.mutex.used;
-        if (lwip_stats.sys.mutex.max < lwip_stats.sys.mutex.used) {
-            lwip_stats.sys.mutex.max = lwip_stats.sys.mutex.used;
-        }
-#endif /* SYS_STATS */
-
-        ret = ERR_OK;
+        SYS_STATS_INC_USED(mutex);
+        err = ERR_OK;
 
     } else {
         ms_printk(MS_PK_ERR, "Failed to create lwip mutex!\n");
-
-#if SYS_STATS
-        ++lwip_stats.sys.mutex.err;
-#endif /* SYS_STATS */
-
-        ret = ERR_MEM;
+        SYS_STATS_INC(mutex.err);
+        err = ERR_MEM;
     }
 
-    return ret;
+    return err;
 }
 
 /**
@@ -95,10 +84,7 @@ void sys_mutex_unlock(sys_mutex_t *mutex)
 void sys_mutex_free(sys_mutex_t *mutex)
 {
     (void)ms_mutex_destroy(*mutex);
-
-#if SYS_STATS
-    --lwip_stats.sys.mutex.used;
-#endif /* SYS_STATS */
+    SYS_STATS_DEC(mutex.used);
 }
 
 /**
@@ -152,30 +138,20 @@ void sys_mutex_set_invalid(sys_mutex_t *mutex)
  */
 err_t sys_sem_new(sys_sem_t *sem, u8_t count)
 {
-    err_t ret;
+    err_t err;
 
     if (ms_semc_create("lwip_semc", count, UINT16_MAX,
                        MS_WAIT_TYPE_PRIO, sem) == MS_ERR_NONE) {
-#if SYS_STATS
-        ++lwip_stats.sys.sem.used;
-        if (lwip_stats.sys.sem.max < lwip_stats.sys.sem.used) {
-            lwip_stats.sys.sem.max = lwip_stats.sys.sem.used;
-        }
-#endif /* SYS_STATS */
-
-        ret = ERR_OK;
+        SYS_STATS_INC_USED(sem);
+        err = ERR_OK;
 
     } else {
         ms_printk(MS_PK_ERR, "Failed to create lwip sem!\n");
-
-#if SYS_STATS
-        ++lwip_stats.sys.sem.err;
-#endif /* SYS_STATS */
-
-        ret = ERR_MEM;
+        SYS_STATS_INC(sem.err);
+        err = ERR_MEM;
     }
 
-    return ret;
+    return err;
 }
 
 /**
@@ -235,10 +211,7 @@ u32_t sys_arch_sem_wait(sys_sem_t *sem, u32_t timeout)
 void sys_sem_free(sys_sem_t *sem)
 {
     (void)ms_semc_destroy(*sem);
-
-#if SYS_STATS
-    --lwip_stats.sys.sem.used;
-#endif /* SYS_STATS */
+    SYS_STATS_DEC(sem.used);
 }
 
 /**
@@ -290,31 +263,25 @@ void sys_sem_set_invalid(sys_sem_t *sem)
 err_t sys_mbox_new(sys_mbox_t *mbox, int size)
 {
     void *msg_buf = ms_kmalloc(size * sizeof(void *));
-    err_t ret = ERR_MEM;
+    err_t err = ERR_MEM;
 
     if (msg_buf != MS_NULL) {
         if (ms_mqueue_create("lwip_mbox", msg_buf, size, sizeof(void *),
                              MS_WAIT_TYPE_PRIO, mbox) == MS_ERR_NONE) {
-
-#if SYS_STATS
-            ++lwip_stats.sys.mbox.used;
-            if (lwip_stats.sys.mbox.max < lwip_stats.sys.mbox.used) {
-                lwip_stats.sys.mbox.max = lwip_stats.sys.mbox.used;
-            }
-#endif /* SYS_STATS */
-
-            ret = ERR_OK;
+            SYS_STATS_INC_USED(mbox);
+            err = ERR_OK;
 
         } else {
             (void)ms_kfree(msg_buf);
         }
     }
 
-    if (ret != ERR_OK) {
+    if (err != ERR_OK) {
         ms_printk(MS_PK_ERR, "Failed to create lwip mbox!\n");
+        SYS_STATS_INC(mbox.err);
     }
 
-    return ret;
+    return err;
 }
 
 
@@ -349,10 +316,7 @@ err_t sys_mbox_trypost(sys_mbox_t *mbox, void *msg)
         ret = ERR_OK;
     } else {
         ret = ERR_MEM;
-
-#if SYS_STATS
-        lwip_stats.sys.mbox.err++;
-#endif /* SYS_STATS */
+        SYS_STATS_INC(mbox.err);
     }
 
     return ret;
@@ -462,9 +426,7 @@ void sys_mbox_free(sys_mbox_t *mbox)
             (void)ms_kfree(stat.msg_buf);
         }
 
-#if SYS_STATS
-        --lwip_stats.sys.mbox.used;
-#endif /* SYS_STATS */
+        SYS_STATS_DEC(mbox.used);
     }
 }
 

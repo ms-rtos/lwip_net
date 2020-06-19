@@ -47,6 +47,9 @@
 #define LW_UNLIKELY(x)          (x)
 #endif
 
+/*
+ * Search source netif
+ */
 struct netif *netif_mipif_ip4_route_src(const ip4_addr_t *src, const ip4_addr_t *dest)
 {
   struct netif *netif;

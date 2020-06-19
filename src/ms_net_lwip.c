@@ -57,6 +57,7 @@ char *netif_get_name(struct netif *netif, char *name)
         lwip_itoa(&name[2], NETIF_NAMESIZE - 2, netif->num);
         return name;
     }
+
     return MS_NULL;
 }
 
@@ -511,11 +512,11 @@ static void  __ms_lwip_speed_string(struct netif *netif, char *speed_str, size_t
 
 static char *__ms_lwip_octets(u64_t value, char *buffer, size_t size)
 {
-    if (value > (1204 * 1024 * 1024)) {
+    if (value > (1024 * 1024 * 1024)) {
         value = (value >> 20);
         ms_snprintf(buffer, size, "%qu.%qu GB", (value >> 10), (value & 0x3ff) / 102);
 
-    } else if (value > (1204 * 1024)) {
+    } else if (value > (1024 * 1024)) {
         value = (value >> 10);
         ms_snprintf(buffer, size, "%qu.%qu MB", (value >> 10), (value & 0x3ff) / 102);
 
