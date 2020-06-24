@@ -243,11 +243,14 @@ a lot of data that needs to be copied, this should be set high. */
 #define TCPIP_THREAD_TIME_SLICE         0
 #define TCPIP_THREAD_OPT                0
 
-#define TCPIP_MBOX_SIZE                 6
+#define TCPIP_MBOX_SIZE                 32
 
-#define DEFAULT_UDP_RECVMBOX_SIZE       6
-#define DEFAULT_TCP_RECVMBOX_SIZE       6
-#define DEFAULT_ACCEPTMBOX_SIZE         6
+#define DEFAULT_UDP_RECVMBOX_SIZE       32
+#define DEFAULT_TCP_RECVMBOX_SIZE       16
+#define DEFAULT_ACCEPTMBOX_SIZE         8
 #define DEFAULT_THREAD_STACKSIZE        1024
+
+#define MEMP_NUM_TCPIP_MSG_API          16
+#define MEMP_NUM_TCPIP_MSG_INPKT        32
 
 #endif /* MS_NET_LWIP_CFG_H */
