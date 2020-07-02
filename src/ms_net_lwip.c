@@ -434,10 +434,10 @@ static ms_net_impl_t ms_lwip_net_impl = {
 };
 
 /**
- * @brief Initial lwIP network component.
+ * @brief Initialize lwIP network component.
  *
- * @param[in] init_done_callback Pointer to lwIP network initial done call back function
- * @param[in] arg Argument of init_done_callback
+ * @param[in] init_done_callback    Pointer to lwIP network initialize done call back function
+ * @param[in] arg                   The argument of init_done_callback
  *
  * @return Error number
  */
@@ -468,9 +468,9 @@ ms_err_t ms_lwip_net_init(void (*init_done_callback)(ms_ptr_t arg), ms_ptr_t arg
 /**
  * @brief lwIP stat command.
  *
- * @param[in] argc Arguments count
- * @param[in] argv Arguments array
- * @param[in] io Pointer to shell io driver
+ * @param[in] argc              Arguments count
+ * @param[in] argv              Arguments array
+ * @param[in] io                Pointer to shell io driver
  *
  * @return N/A
  */
@@ -533,8 +533,8 @@ static char *__ms_lwip_octets(u64_t value, char *buffer, size_t size)
 /**
  * @brief lwIP netif show.
  *
- * @param[in] netif Pointer to lwIP netif
- * @param[in] io Pointer to shell io driver
+ * @param[in] netif             Pointer to lwIP netif
+ * @param[in] io                Pointer to shell io driver
  *
  * @return N/A
  */
@@ -701,9 +701,9 @@ static void __ms_lwip_netif_show(struct netif *netif, const ms_shell_io_t *io)
 /**
  * @brief lwIP netifs command.
  *
- * @param[in] argc Arguments count
- * @param[in] argv Arguments array
- * @param[in] io Pointer to shell io driver
+ * @param[in] argc              Arguments count
+ * @param[in] argv              Arguments array
+ * @param[in] io                Pointer to shell io driver
  *
  * @return N/A
  */
