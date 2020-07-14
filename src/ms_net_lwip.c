@@ -602,9 +602,9 @@ static void __ms_lwip_netif_show(struct netif *netif, const ms_shell_io_t *io)
     ip4_addr_t       broadcast_addr;
     int              i, flags;
 
-    io->_printf("%-5s%4s ", netif_get_name(netif, if_name), "");        /*  网卡名称                    */
+    io->_printf("%-5s%4s ", netif_get_name(netif, if_name), "");        /*  The name of network card    */
 
-    if (netif->flags & (NETIF_FLAG_ETHARP | NETIF_FLAG_ETHERNET)) {     /*  以太网络                    */
+    if (netif->flags & (NETIF_FLAG_ETHARP | NETIF_FLAG_ETHERNET)) {     /*  Ethernet                    */
         io->_printf("Link encap: Ethernet HWaddr: ");
         for (i = 0; i < netif->hwaddr_len - 1; i++) {
             io->_printf("%02x:", netif->hwaddr[i]);
@@ -612,7 +612,7 @@ static void __ms_lwip_netif_show(struct netif *netif, const ms_shell_io_t *io)
         io->_printf("%02x\n", netif->hwaddr[netif->hwaddr_len - 1]);
 
     } else {
-        if ((netif->flags & NETIF_FLAG_BROADCAST) == 0) {               /*  点对点网络接口              */
+        if ((netif->flags & NETIF_FLAG_BROADCAST) == 0) {               /*  Point to point interface    */
             if (netif->link_type == snmp_ifType_softwareLoopback) {
                 io->_printf("Link encap: Local Loopback\n");
             } else if (netif->link_type == snmp_ifType_ppp) {
@@ -623,7 +623,7 @@ static void __ms_lwip_netif_show(struct netif *netif, const ms_shell_io_t *io)
                 io->_printf("Link encap: General\n");
             }
 
-        } else {                                                        /*  通用网络接口                */
+        } else {                                                        /*  General network interface   */
             io->_printf("Link encap: General\n");
         }
     }
@@ -774,6 +774,6 @@ static void __ms_shell_lwip_netifs(int argc, char *argv[], const ms_shell_io_t *
     }
 }
 
-MS_SHELL_CMD(netifs,   __ms_shell_lwip_netifs, "Show all lwIP netif info", __ms_shell_cmd_lwip_netifs);
+MS_SHELL_CMD(netifs, __ms_shell_lwip_netifs, "Show all lwIP netif info", __ms_shell_cmd_lwip_netifs);
 
 #endif
