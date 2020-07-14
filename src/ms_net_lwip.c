@@ -30,6 +30,7 @@
 #include "lwip/api.h"
 #include "lwip/snmp.h"
 #include "lwip/netifapi.h"
+#include "lwip/dns.h"
 
 /**
  * @brief LwIP Network implement.
@@ -55,10 +56,11 @@ char *netif_get_name(struct netif *netif, char *name)
         name[0] = netif->name[0];
         name[1] = netif->name[1];
         lwip_itoa(&name[2], NETIF_NAMESIZE - 2, netif->num);
-        return name;
+    } else {
+        name = NULL;
     }
 
-    return MS_NULL;
+    return name;
 }
 
 /*
@@ -402,6 +404,56 @@ static int __ms_lwip_sethostname(const char *name, size_t len)
     return -1;
 }
 
+/*
+ * Get dns server
+ */
+static int __ms_lwip_getdnsserver(ms_uint8_t numdns, ip_addr_t *dnsserver)
+{
+    int ret;
+
+    if (numdns < DNS_MAX_SERVERS) {
+        if (dnsserver != MS_NULL) {
+            LOCK_TCPIP_CORE();
+            *dnsserver = *dns_getserver(numdns);
+            UNLOCK_TCPIP_CORE();
+            ret = 0;
+        } else {
+            ms_thread_set_errno(EFAULT);
+            ret = -1;
+        }
+    } else {
+        ms_thread_set_errno(EINVAL);
+        ret = -1;
+    }
+
+    return ret;
+}
+
+/*
+ * Set dns server
+ */
+static int __ms_lwip_setdnsserver(ms_uint8_t numdns, const ip_addr_t *dnsserver)
+{
+    int ret;
+
+    if (numdns < DNS_MAX_SERVERS) {
+        if (dnsserver != MS_NULL) {
+            LOCK_TCPIP_CORE();
+            dns_setserver(numdns, dnsserver);
+            UNLOCK_TCPIP_CORE();
+            ret = 0;
+        } else {
+            ms_thread_set_errno(EFAULT);
+            ret = -1;
+        }
+    } else {
+        ms_thread_set_errno(EINVAL);
+        ret = -1;
+    }
+
+    return ret;
+}
+
 static ms_net_impl_ops_t ms_lwip_net_impl_ops = {
         .socket                 = (ms_net_socket_func_t)__ms_lwip_socket,
         .accept                 = (ms_net_accept_func_t)__ms_lwip_accept,
@@ -424,6 +476,8 @@ static ms_net_impl_ops_t ms_lwip_net_impl_ops = {
         .gethostbyname_addrtype = (ms_net_gethostbyname_addrtype_func_t)netconn_gethostbyname_addrtype,
         .gethostname            = (ms_net_gethostname_func_t)__ms_lwip_gethostname,
         .sethostname            = (ms_net_sethostname_func_t)__ms_lwip_sethostname,
+        .getdnsserver           = (ms_net_getdnsserver_func_t)__ms_lwip_getdnsserver,
+        .setdnsserver           = (ms_net_setdnsserver_func_t)__ms_lwip_setdnsserver,
 };
 
 static ms_net_impl_t ms_lwip_net_impl = {
