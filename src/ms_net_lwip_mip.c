@@ -6,7 +6,7 @@
  *
  * File: ms_net_lwip_mip.c lwIP multi IP support.
  *
- * Author: Jiao.jinxing <jiaojixing@acoinfo.com>
+ * Author: Jiao.jinxing <jiaojinxing@acoinfo.com>
  *
  */
 

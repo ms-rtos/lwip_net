@@ -6,7 +6,7 @@
  *
  * File: ms_net_lwip_ifctl.c lwIP netif control.
  *
- * Author: Jiao.jinxing <jiaojixing@acoinfo.com>
+ * Author: Jiao.jinxing <jiaojinxing@acoinfo.com>
  *
  */
 

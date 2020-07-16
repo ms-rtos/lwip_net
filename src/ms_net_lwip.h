@@ -6,7 +6,7 @@
  *
  * File: ms_net_lwip.h lwIP network implement.
  *
- * Author: Jiao.jinxing <jiaojixing@acoinfo.com>
+ * Author: Jiao.jinxing <jiaojinxing@acoinfo.com>
  *
  */
 

@@ -6,7 +6,7 @@
  *
  * File: ms_net_lwip_porting.h lwIP porting.
  *
- * Author: Jiao.jinxing <jiaojixing@acoinfo.com>
+ * Author: Jiao.jinxing <jiaojinxing@acoinfo.com>
  *
  */
 
