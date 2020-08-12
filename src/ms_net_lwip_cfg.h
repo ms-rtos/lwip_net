@@ -22,6 +22,10 @@
 
 #define LWIP_NETIF_API          1
 
+#define LWIP_MPU_COMPATIBLE     1
+
+#define ETH_PAD_SIZE            2
+
 /**
  * NO_SYS==1: Provides VERY minimal functionality. Otherwise,
  * use lwIP facilities.
