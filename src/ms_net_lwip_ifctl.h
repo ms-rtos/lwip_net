@@ -21,6 +21,9 @@ extern "C" {
 
 int __ms_lwip_if_ioctl_inet(int cmd, void *arg);
 
+#define LWIP_IF_LIST_LOCK(write)    LOCK_TCPIP_CORE()
+#define LWIP_IF_LIST_UNLOCK()       UNLOCK_TCPIP_CORE()
+
 #endif
 
 #ifdef __cplusplus

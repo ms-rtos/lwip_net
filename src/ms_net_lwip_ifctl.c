@@ -64,9 +64,6 @@ typedef void       *PVOID;
 #define netdev_mipif_add            netif_mipif_add
 #define netdev_mipif_delete         netif_mipif_delete
 
-#define LWIP_IF_LIST_LOCK(write)    LOCK_TCPIP_CORE()
-#define LWIP_IF_LIST_UNLOCK()       UNLOCK_TCPIP_CORE()
-
 #define LW_CFG_NET_NETDEV_MIP_EN    MS_LWIP_NETIF_MIP_EN
 
 /*********************************************************************************************************

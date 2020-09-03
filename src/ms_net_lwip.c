@@ -71,9 +71,11 @@ u32_t netif_get_total(void)
     u32_t total = 0;
     struct netif *netif;
 
+    LWIP_IF_LIST_LOCK(MS_FALSE);
     NETIF_FOREACH(netif) {
         total++;
     }
+    LWIP_IF_LIST_UNLOCK();
 
     return total;
 }
@@ -766,9 +768,11 @@ static void __ms_shell_lwip_netifs(int argc, char *argv[], const ms_shell_io_t *
     if (ms_lwip_inited) {
         struct netif *netif;
 
+        LWIP_IF_LIST_LOCK(MS_FALSE);
         NETIF_FOREACH(netif) {
             __ms_lwip_netif_show(netif, io);
         }
+        LWIP_IF_LIST_UNLOCK();
     } else {
         io->_printf("lwIP no init!\n");
     }
