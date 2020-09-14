@@ -124,12 +124,13 @@ static int __ms_lwip_socket_open(ms_ptr_t ctx, ms_io_file_t *file, int oflag, ms
 {
     int ret;
 
-    if (ms_atomic_inc(MS_IO_DEV_REF(file)) == 2) {
+    if (ms_atomic_inc(MS_IO_DEV_REF(file)) == 1) {
         ms_io_device_t *dev = MS_IO_FILE_TO_DEV(file);
         ms_net_socket_device_t *sock_dev = MS_CONTAINER_OF(dev, ms_net_socket_device_t, dev);
 
-        file->type |= MS_IO_FILE_TYPE_SOCK;
         ret = lwip_msrtos_socket_ctx_set((int)ctx, sock_dev);
+
+        file->type |= MS_IO_FILE_TYPE_SOCK;
 
     } else {
         ms_atomic_dec(MS_IO_DEV_REF(file));
@@ -338,7 +339,7 @@ static int __ms_lwip_socket(int domain, int type, int protocol)
     int fd;
 
     if (lwip_fd >= 0) {
-        fd = ms_net_socket_attach(MS_LWIP_SOCKET_DRV_NAME, (ms_ptr_t)lwip_fd);
+        fd = ms_net_socket_attach(MS_LWIP_NET_IMPL_NAME, (ms_ptr_t)lwip_fd);
         if (fd < 0) {
             int err = ms_thread_get_errno();
             (void)lwip_close(lwip_fd);
@@ -361,7 +362,7 @@ static int __ms_lwip_accept(ms_ptr_t ctx, ms_io_file_t *file, struct sockaddr *a
 
     accept_lwip_fd = lwip_accept((int)ctx, addr, addrlen);
     if (accept_lwip_fd >= 0) {
-        accept_fd = ms_net_socket_attach(MS_LWIP_SOCKET_DRV_NAME, (ms_ptr_t)accept_lwip_fd);
+        accept_fd = ms_net_socket_attach(MS_LWIP_NET_IMPL_NAME, (ms_ptr_t)accept_lwip_fd);
         if (accept_fd < 0) {
             int err = ms_thread_get_errno();
             (void)lwip_close(accept_lwip_fd);
@@ -457,6 +458,7 @@ static int __ms_lwip_setdnsserver(ms_uint8_t numdns, const ip_addr_t *dnsserver)
 }
 
 static ms_net_impl_ops_t ms_lwip_net_impl_ops = {
+        .sock_drv_name          = MS_LWIP_SOCKET_DRV_NAME,
         .socket                 = (ms_net_socket_func_t)__ms_lwip_socket,
         .accept                 = (ms_net_accept_func_t)__ms_lwip_accept,
         .bind                   = (ms_net_bind_func_t)lwip_bind,
