@@ -128,7 +128,7 @@ static int __ms_lwip_socket_open(ms_ptr_t ctx, ms_io_file_t *file, int oflag, ms
         ms_io_device_t *dev = MS_IO_FILE_TO_DEV(file);
         ms_net_socket_device_t *sock_dev = MS_CONTAINER_OF(dev, ms_net_socket_device_t, dev);
 
-        ret = lwip_msrtos_socket_ctx_set((int)ctx, sock_dev);
+        ret = lwip_msrtos_socket_ctx_set((int)(long)ctx, sock_dev);
 
         file->type |= MS_IO_FILE_TYPE_SOCK;
 
@@ -149,7 +149,7 @@ static int __ms_lwip_socket_close(ms_ptr_t ctx, ms_io_file_t *file)
     int ret;
 
     if (ms_atomic_dec(MS_IO_DEV_REF(file)) == 0) {
-        ret = lwip_close((int)ctx);
+        ret = lwip_close((int)(long)ctx);
         if (ret == 0) {
             ms_io_device_t *dev = MS_IO_FILE_TO_DEV(file);
             ms_net_socket_device_t *sock_dev = MS_CONTAINER_OF(dev, ms_net_socket_device_t, dev);
@@ -167,17 +167,17 @@ static int __ms_lwip_socket_close(ms_ptr_t ctx, ms_io_file_t *file)
 /*
  * Read socket device
  */
-static ssize_t __ms_lwip_socket_read(ms_ptr_t ctx, ms_io_file_t *file, ms_ptr_t buf, size_t len)
+static ms_ssize_t __ms_lwip_socket_read(ms_ptr_t ctx, ms_io_file_t *file, ms_ptr_t buf, ms_size_t len)
 {
-    return lwip_read((int)ctx, buf, len);
+    return (ms_ssize_t)lwip_read((int)(long)ctx, buf, len);
 }
 
 /*
  * Write socket device
  */
-static ssize_t __ms_lwip_socket_write(ms_ptr_t ctx, ms_io_file_t *file, ms_const_ptr_t buf, size_t len)
+static ms_ssize_t __ms_lwip_socket_write(ms_ptr_t ctx, ms_io_file_t *file, ms_const_ptr_t buf, ms_size_t len)
 {
-    return lwip_write((int)ctx, buf, len);
+    return (ms_ssize_t)lwip_write((int)(long)ctx, buf, len);
 }
 
 /*
@@ -237,7 +237,7 @@ static int __ms_lwip_socket_ioctl(ms_ptr_t ctx, ms_io_file_t *file, int cmd, ms_
 #endif
 
     default:
-        ret = lwip_ioctl((int)ctx, cmd, arg);
+        ret = lwip_ioctl((int)(long)ctx, cmd, arg);
         break;
     }
 
@@ -251,7 +251,7 @@ static int __ms_lwip_socket_fcntl(ms_ptr_t ctx, ms_io_file_t *file, int cmd, int
 {
     int ret;
 
-    ret = lwip_fcntl((int)ctx, cmd, arg);
+    ret = lwip_fcntl((int)(long)ctx, cmd, arg);
     if ((ret == 0) && (cmd == F_SETFL)) {
         file->flags = arg;
     }
@@ -264,7 +264,7 @@ static int __ms_lwip_socket_fcntl(ms_ptr_t ctx, ms_io_file_t *file, int cmd, int
  */
 static ms_bool_t __ms_lwip_socket_readable_check(ms_ptr_t ctx)
 {
-    return lwip_msrtos_socket_readable_check((int)ctx);
+    return lwip_msrtos_socket_readable_check((int)(long)ctx);
 }
 
 /*
@@ -272,7 +272,7 @@ static ms_bool_t __ms_lwip_socket_readable_check(ms_ptr_t ctx)
  */
 static ms_bool_t __ms_lwip_socket_writable_check(ms_ptr_t ctx)
 {
-    return lwip_msrtos_socket_writable_check((int)ctx);
+    return lwip_msrtos_socket_writable_check((int)(long)ctx);
 }
 
 /*
@@ -280,7 +280,7 @@ static ms_bool_t __ms_lwip_socket_writable_check(ms_ptr_t ctx)
  */
 static ms_bool_t __ms_lwip_socket_except_check(ms_ptr_t ctx)
 {
-    return lwip_msrtos_socket_except_check((int)ctx);
+    return lwip_msrtos_socket_except_check((int)(long)ctx);
 }
 
 /*
@@ -339,7 +339,7 @@ static int __ms_lwip_socket(int domain, int type, int protocol)
     int fd;
 
     if (lwip_fd >= 0) {
-        fd = ms_net_socket_attach(MS_LWIP_NET_IMPL_NAME, (ms_ptr_t)lwip_fd);
+        fd = ms_net_socket_attach(MS_LWIP_NET_IMPL_NAME, (ms_ptr_t)(long)lwip_fd);
         if (fd < 0) {
             int err = ms_thread_get_errno();
             (void)lwip_close(lwip_fd);
@@ -360,9 +360,9 @@ static int __ms_lwip_accept(ms_ptr_t ctx, ms_io_file_t *file, struct sockaddr *a
     int accept_lwip_fd;
     int accept_fd;
 
-    accept_lwip_fd = lwip_accept((int)ctx, addr, addrlen);
+    accept_lwip_fd = lwip_accept((int)(long)ctx, addr, addrlen);
     if (accept_lwip_fd >= 0) {
-        accept_fd = ms_net_socket_attach(MS_LWIP_NET_IMPL_NAME, (ms_ptr_t)accept_lwip_fd);
+        accept_fd = ms_net_socket_attach(MS_LWIP_NET_IMPL_NAME, (ms_ptr_t)(long)accept_lwip_fd);
         if (accept_fd < 0) {
             int err = ms_thread_get_errno();
             (void)lwip_close(accept_lwip_fd);
@@ -555,16 +555,16 @@ static void  __ms_lwip_speed_string(struct netif *netif, char *speed_str, size_t
         strlcpy(speed_str, "N/A", size);
 
     } else if (speed < 1000ull) {
-        ms_snprintf(speed_str, size, "%qu bps", speed);
+        ms_snprintf(speed_str, size, "%"PRIu64 " bps", speed);
 
     } else if (speed < 5000000ull) {
-        ms_snprintf(speed_str, size, "%qu Kbps", speed / 1000);
+        ms_snprintf(speed_str, size, "%"PRIu64 " Kbps", speed / 1000);
 
     } else if (speed < 5000000000ull) {
-        ms_snprintf(speed_str, size, "%qu Mbps", speed / 1000000);
+        ms_snprintf(speed_str, size, "%"PRIu64 " Mbps", speed / 1000000);
 
     } else {
-        ms_snprintf(speed_str, size, "%qu Gbps", speed / 1000000000);
+        ms_snprintf(speed_str, size, "%"PRIu64 " Gbps", speed / 1000000000);
     }
 }
 
@@ -572,17 +572,17 @@ static char *__ms_lwip_octets(u64_t value, char *buffer, size_t size)
 {
     if (value > (1024 * 1024 * 1024)) {
         value = (value >> 20);
-        ms_snprintf(buffer, size, "%qu.%qu GB", (value >> 10), (value & 0x3ff) / 102);
+        ms_snprintf(buffer, size, "%"PRIu64 ".%"PRIu64 " GB", (value >> 10), (value & 0x3ff) / 102);
 
     } else if (value > (1024 * 1024)) {
         value = (value >> 10);
-        ms_snprintf(buffer, size, "%qu.%qu MB", (value >> 10), (value & 0x3ff) / 102);
+        ms_snprintf(buffer, size, "%"PRIu64 ".%"PRIu64 " MB", (value >> 10), (value & 0x3ff) / 102);
 
     } else if (value > 1024) {
-        ms_snprintf(buffer, size, "%qu.%qu KB", (value >> 10), (value & 0x3ff) / 102);
+        ms_snprintf(buffer, size, "%"PRIu64 ".%"PRIu64 " KB", (value >> 10), (value & 0x3ff) / 102);
 
     } else {
-        ms_snprintf(buffer, size, "%qu.0 B", value);
+        ms_snprintf(buffer, size, "%"PRIu64 ".0 B", value);
     }
 
     return  (buffer);
@@ -747,7 +747,7 @@ static void __ms_lwip_netif_show(struct netif *netif, const ms_shell_io_t *io)
                 (unsigned)MIB2_NETIF(netif)->ifinucastpkts, (unsigned)MIB2_NETIF(netif)->ifinnucastpkts, (unsigned)MIB2_NETIF(netif)->ifindiscards);
         io->_printf("%9s TX ucast packets:%u nucast packets:%u dropped:%u\n", "",
                 (unsigned)MIB2_NETIF(netif)->ifoutucastpkts, (unsigned)MIB2_NETIF(netif)->ifoutnucastpkts, (unsigned)MIB2_NETIF(netif)->ifoutdiscards);
-        io->_printf("%9s RX bytes:%qu (%s)  TX bytes:%qu (%s)\n", "",
+        io->_printf("%9s RX bytes:%"PRIu64 " (%s)  TX bytes:%"PRIu64 " (%s)\n", "",
                MIB2_NETIF(netif)->ifinoctets,
                __ms_lwip_octets(MIB2_NETIF(netif)->ifinoctets, buffer1, sizeof(buffer1)),
                MIB2_NETIF(netif)->ifoutoctets,
