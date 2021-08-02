@@ -535,13 +535,9 @@ ms_err_t ms_lwip_net_init(void (*init_done_callback)(ms_ptr_t arg), ms_ptr_t arg
 static void __ms_shell_lwip_stat(int argc, char *argv[], const ms_shell_io_t *io)
 {
     if (ms_lwip_inited) {
-        ms_lwip_platform_diag = io->_printf;
-
         stats_display();
-
-        ms_lwip_platform_diag = ms_printf;
     } else {
-        io->_printf("lwIP no init!\n");
+        ms_shell_printf(io, "lwIP no init!\n");
     }
 }
 MS_SHELL_CMD(lwipstat, __ms_shell_lwip_stat, "Show lwIP network statistics", __ms_shell_cmd_lwip_stat);
@@ -606,29 +602,29 @@ static void __ms_lwip_netif_show(struct netif *netif, const ms_shell_io_t *io)
     ip4_addr_t       broadcast_addr;
     int              i, flags;
 
-    io->_printf("%-5s%4s ", netif_get_name(netif, if_name), "");        /*  The name of network card    */
+    ms_shell_printf(io, "%-5s%4s ", netif_get_name(netif, if_name), "");/*  The name of network card    */
 
     if (netif->flags & (NETIF_FLAG_ETHARP | NETIF_FLAG_ETHERNET)) {     /*  Ethernet                    */
-        io->_printf("Link encap: Ethernet HWaddr: ");
+        ms_shell_printf(io, "Link encap: Ethernet HWaddr: ");
         for (i = 0; i < netif->hwaddr_len - 1; i++) {
-            io->_printf("%02x:", netif->hwaddr[i]);
+            ms_shell_printf(io, "%02x:", netif->hwaddr[i]);
         }
-        io->_printf("%02x\n", netif->hwaddr[netif->hwaddr_len - 1]);
+        ms_shell_printf(io, "%02x\n", netif->hwaddr[netif->hwaddr_len - 1]);
 
     } else {
         if ((netif->flags & NETIF_FLAG_BROADCAST) == 0) {               /*  Point to point interface    */
             if (netif->link_type == snmp_ifType_softwareLoopback) {
-                io->_printf("Link encap: Local Loopback\n");
+                ms_shell_printf(io, "Link encap: Local Loopback\n");
             } else if (netif->link_type == snmp_ifType_ppp) {
-                io->_printf("Link encap: PPP Link\n");
+                ms_shell_printf(io, "Link encap: PPP Link\n");
             } else if (netif->link_type == snmp_ifType_slip) {
-                io->_printf("Link encap: SLIP Link\n");
+                ms_shell_printf(io, "Link encap: SLIP Link\n");
             } else {
-                io->_printf("Link encap: General\n");
+                ms_shell_printf(io, "Link encap: General\n");
             }
 
         } else {                                                        /*  General network interface   */
-            io->_printf("Link encap: General\n");
+            ms_shell_printf(io, "Link encap: General\n");
         }
     }
 
@@ -636,17 +632,17 @@ static void __ms_lwip_netif_show(struct netif *netif, const ms_shell_io_t *io)
 
 #if MS_LWIP_NETIF_MIP_EN > 0
     if (netif_is_mipif(netif)) {
-        io->_printf("%9s Mif: %s Ifidx: %d ", "",
+        ms_shell_printf(io, "%9s Mif: %s Ifidx: %d ", "",
                netif_get_name(netif_get_masterif(netif), if_name), netif_get_index(netif));
     } else
 #endif                                                                  /*  MS_LWIP_NETIF_MIP_EN        */
     {
-        io->_printf("%9s Dev: %s Ifidx: %d ", "",
+        ms_shell_printf(io, "%9s Dev: %s Ifidx: %d ", "",
                dev_name, netif_get_index(netif));
     }
 
 #if LWIP_DHCP
-    io->_printf("DHCP: %s%s %s%s Spd: %s\n",
+    ms_shell_printf(io, "DHCP: %s%s %s%s Spd: %s\n",
            (netif->flags2 & NETIF_FLAG2_DHCP) ? "E4" : "D4",
            (netif->flags2 & NETIF_FLAG2_DHCP) ? ((netif_dhcp_data(netif)) ? "(On)" : "(Off)") : "",
 #if LWIP_IPV6_DHCP6
@@ -657,28 +653,28 @@ static void __ms_lwip_netif_show(struct netif *netif, const ms_shell_io_t *io)
 #endif                                                                  /*  LWIP_IPV6_DHCP6             */
            buffer1);
 #else
-    io->_printf("Spd: %s\n", cBuffer1);
+    ms_shell_printf(io, "Spd: %s\n", cBuffer1);
 #endif                                                                  /*  LWIP_DHCP                   */
 
-    io->_printf("%9s inet addr: %d.%d.%d.%d ", "",
+    ms_shell_printf(io, "%9s inet addr: %d.%d.%d.%d ", "",
            ip4_addr1(netif_ip4_addr(netif)), ip4_addr2(netif_ip4_addr(netif)),
            ip4_addr3(netif_ip4_addr(netif)), ip4_addr4(netif_ip4_addr(netif)));
-    io->_printf("netmask: %d.%d.%d.%d\n",
+    ms_shell_printf(io, "netmask: %d.%d.%d.%d\n",
            ip4_addr1(netif_ip4_netmask(netif)), ip4_addr2(netif_ip4_netmask(netif)),
            ip4_addr3(netif_ip4_netmask(netif)), ip4_addr4(netif_ip4_netmask(netif)));
 
     if ((netif->flags & NETIF_FLAG_BROADCAST) == 0) {
-        io->_printf("%9s P-to-P: %d.%d.%d.%d ", "",
+        ms_shell_printf(io, "%9s P-to-P: %d.%d.%d.%d ", "",
                ip4_addr1(netif_ip4_gw(netif)), ip4_addr2(netif_ip4_gw(netif)),
                ip4_addr3(netif_ip4_gw(netif)), ip4_addr4(netif_ip4_gw(netif)));
-        io->_printf("broadcast: N/A\n");
+        ms_shell_printf(io, "broadcast: N/A\n");
 
     } else {
-        io->_printf("%9s gateway: %d.%d.%d.%d ", "",
+        ms_shell_printf(io, "%9s gateway: %d.%d.%d.%d ", "",
                ip4_addr1(netif_ip4_gw(netif)), ip4_addr2(netif_ip4_gw(netif)),
                ip4_addr3(netif_ip4_gw(netif)), ip4_addr4(netif_ip4_gw(netif)));
         broadcast_addr.addr = (netif_ip4_addr(netif)->addr | (~netif_ip4_netmask(netif)->addr));
-        io->_printf("broadcast: %d.%d.%d.%d\n",
+        ms_shell_printf(io, "broadcast: %d.%d.%d.%d\n",
                ip4_addr1(&broadcast_addr), ip4_addr2(&broadcast_addr),
                ip4_addr3(&broadcast_addr), ip4_addr4(&broadcast_addr));
     }
@@ -703,57 +699,57 @@ static void __ms_lwip_netif_show(struct netif *netif, const ms_shell_io_t *io)
         }
 
         if (ip6_addr_isvalid(netif->ip6_addr_state[i])) {
-            io->_printf("%9s inet6 addr: %s Scope:%s\n", "",
+            ms_shell_printf(io, "%9s inet6 addr: %s Scope:%s\n", "",
                    ip6addr_ntoa_r(ip_2_ip6(&netif->ip6_addr[i]), buffer, sizeof(buffer)),
                    addr_type);
 
         } else if (ip6_addr_istentative(netif->ip6_addr_state[i])) {
-            io->_printf("%9s inet6 addr: %s Scope:%s<T%d>\n", "",
+            ms_shell_printf(io, "%9s inet6 addr: %s Scope:%s<T%d>\n", "",
                    ip6addr_ntoa_r(ip_2_ip6(&netif->ip6_addr[i]), buffer, sizeof(buffer)),
                    addr_type, (netif->ip6_addr_state[i] & IP6_ADDR_TENTATIVE_7) - 8);
         }
     }
 #endif                                                                  /*  LWIP_IPV6                   */
 
-    io->_printf("%9s ", "");
+    ms_shell_printf(io, "%9s ", "");
     flags = netif_get_flags(netif);
     if (flags & IFF_UP) {
-        io->_printf("UP ");
+        ms_shell_printf(io, "UP ");
     }
     if (flags & IFF_BROADCAST) {
-        io->_printf("BROADCAST ");
+        ms_shell_printf(io, "BROADCAST ");
     }
     if (flags & IFF_LOOPBACK) {
-        io->_printf("LOOPBACK ");
+        ms_shell_printf(io, "LOOPBACK ");
     }
     if (flags & IFF_RUNNING) {
-        io->_printf("RUNNING ");
+        ms_shell_printf(io, "RUNNING ");
     }
     if (flags & IFF_MULTICAST) {
-        io->_printf("MULTICAST ");
+        ms_shell_printf(io, "MULTICAST ");
     }
     if (netif->flags & (NETIF_FLAG_ETHARP | NETIF_FLAG_ETHERNET)) {
         if (flags & IFF_NOARP) {
-            io->_printf("NOARP ");
+            ms_shell_printf(io, "NOARP ");
         }
     }
-    io->_printf(" MTU:%d  Metric:%d\n", netif->mtu, netif->metric);
+    ms_shell_printf(io, " MTU:%d  Metric:%d\n", netif->mtu, netif->metric);
 
     if (!netif_is_mipif(netif)) {
-        io->_printf("%9s noproto:%u\n", "",
+        ms_shell_printf(io, "%9s noproto:%u\n", "",
                 (unsigned)MIB2_NETIF(netif)->ifinunknownprotos);
 
-        io->_printf("%9s RX ucast packets:%u nucast packets:%u dropped:%u\n", "",
+        ms_shell_printf(io, "%9s RX ucast packets:%u nucast packets:%u dropped:%u\n", "",
                 (unsigned)MIB2_NETIF(netif)->ifinucastpkts, (unsigned)MIB2_NETIF(netif)->ifinnucastpkts, (unsigned)MIB2_NETIF(netif)->ifindiscards);
-        io->_printf("%9s TX ucast packets:%u nucast packets:%u dropped:%u\n", "",
+        ms_shell_printf(io, "%9s TX ucast packets:%u nucast packets:%u dropped:%u\n", "",
                 (unsigned)MIB2_NETIF(netif)->ifoutucastpkts, (unsigned)MIB2_NETIF(netif)->ifoutnucastpkts, (unsigned)MIB2_NETIF(netif)->ifoutdiscards);
-        io->_printf("%9s RX bytes:%"PRIu64 " (%s)  TX bytes:%"PRIu64 " (%s)\n", "",
+        ms_shell_printf(io, "%9s RX bytes:%"PRIu64 " (%s)  TX bytes:%"PRIu64 " (%s)\n", "",
                MIB2_NETIF(netif)->ifinoctets,
                __ms_lwip_octets(MIB2_NETIF(netif)->ifinoctets, buffer1, sizeof(buffer1)),
                MIB2_NETIF(netif)->ifoutoctets,
                __ms_lwip_octets(MIB2_NETIF(netif)->ifoutoctets, buffer2, sizeof(buffer2)));
     }
-    io->_printf("\n");
+    ms_shell_printf(io, "\n");
 }
 
 /**
@@ -776,7 +772,7 @@ static void __ms_shell_lwip_netifs(int argc, char *argv[], const ms_shell_io_t *
         }
         LWIP_IF_LIST_UNLOCK();
     } else {
-        io->_printf("lwIP no init!\n");
+        ms_shell_printf(io, "lwIP no init!\n");
     }
 }
 
